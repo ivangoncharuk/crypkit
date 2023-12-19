@@ -2,6 +2,7 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 from InquirerPy import prompt
+from key_generation import key_generation_menu
 
 console = Console()
 
@@ -15,7 +16,6 @@ def cli():
 @cli.command()
 def menu():
     """Display the main menu using InquirerPy"""
-    console.print(Panel("", title="Main Menu", title_align="right"))
     questions = [
         {
             "type": "list",
@@ -34,8 +34,8 @@ def menu():
 
 
 def process_choice(choice):
-    if choice == 'Key Generation':
-        pass # TODO  key_generation_menu()
+    if choice == "Key Generation":
+        key_generation_menu()
     elif choice == "File Encryption/Decryption":
         # Call file encryption module
         pass
