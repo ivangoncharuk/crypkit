@@ -3,8 +3,10 @@ from cryptography.hazmat.primitives import serialization
 from InquirerPy import prompt
 from rich.console import Console
 from rich.markdown import Markdown
+import json
 
 console = Console()
+KEY_STORAGE_FILE = "key_storage.json"
 
 
 def generate_keys(key_size):
@@ -26,7 +28,7 @@ def generate_keys(key_size):
     return private_key, public_key
 
 
-def save_key_to_file(key, filename, is_private=False):
+def save_key_to_file(key, filename, key_size, is_private=False):
     """
     Save a key to a PEM format file.
 
@@ -49,6 +51,53 @@ def save_key_to_file(key, filename, is_private=False):
     with open(filename, "wb") as file:
         file.write(pem)
 
+    try:
+        with open(KEY_STORAGE_FILE, "r+") as storage:
+            key_data = json.load(storage)
+            key_type = "private" if is_private else "public"
+            key_data[filename] = {"type": key_type, "size": key_size}
+            storage.seek(0)
+            json.dump(key_data, storage)
+    except FileNotFoundError:
+        with open(KEY_STORAGE_FILE, "w") as storage:
+            json.dump({filename: {"type": key_type, "size": key_size}}, storage)
+
+
+def list_keys():
+    """
+    List the stored keys from the key storage file.
+    """
+    try:
+        with open(KEY_STORAGE_FILE, "r") as storage:
+            return json.load(storage)
+    except FileNotFoundError:
+        return {}
+
+
+def select_key_from_storage(is_private):
+    """
+    Allow the user to select a key from the stored keys.
+    """
+    keys = list_keys()
+    filtered_keys = {
+        k: v
+        for k, v in keys.items()
+        if v["type"] == ("private" if is_private else "public")
+    }
+    if not filtered_keys:
+        console.print("[red]No keys available. Please generate a key first.[/red]")
+        return None
+    key_choices = list(filtered_keys.keys())
+    key_name = prompt(
+        {
+            "type": "list",
+            "name": "key",
+            "message": "Select a key:",
+            "choices": key_choices,
+        }
+    )["key"]
+    return key_name
+
 
 def key_generation_menu():
     """
@@ -64,8 +113,8 @@ def key_generation_menu():
 
     private_key, public_key = generate_keys(key_size)
 
-    save_key_to_file(private_key, "private_key.pem", is_private=True)
-    save_key_to_file(public_key, "public_key.pem")
+    save_key_to_file(private_key, "private_key.pem", key_size, is_private=True)
+    save_key_to_file(public_key, "public_key.pem", key_size)
 
     print(
         f"Keys generated and saved as 'private_key.pem' and 'public_key.pem' with {key_size}-bit size."

@@ -6,6 +6,8 @@ from rich.panel import Panel
 import tkinter as tk
 from tkinter import filedialog
 
+from key_generation import select_key_from_storage
+
 console = Console()
 
 
@@ -23,27 +25,45 @@ def load_key(file_path, is_private):
             return serialization.load_pem_public_key(key_file.read())
 
 
+def max_rsa_encryption_size(key_size_in_bits):
+    """
+    Calculate the maximum size of data that can be encrypted with RSA given the key size.
+    """
+    hash_size_in_bytes = 32  # SHA-256 hash size
+    key_size_in_bytes = key_size_in_bits // 8
+    return key_size_in_bytes - 2 * hash_size_in_bytes - 2
+
+
 def encrypt_file(file_path, public_key):
     """
     Encrypt a file using the provided public key.
     """
-    with open(file_path, "rb") as file:
-        original_data = file.read()
+    try:
+        with open(file_path, "rb") as file:
+            original_data = file.read()
 
-    encrypted_data = public_key.encrypt(
-        original_data,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
+        max_size = max_rsa_encryption_size(public_key.key_size)
+        if len(original_data) > max_size:
+            console.print(
+                f"[red]Encryption failed: File size exceeds the maximum allowed ({len(original_data)} bytes out of {max_size} bytes).[/red]"
+            )
+            return None
 
-    encrypted_file_path = file_path + ".encrypted"
-    with open(encrypted_file_path, "wb") as file:
-        file.write(encrypted_data)
-
-    return encrypted_file_path
+        encrypted_data = public_key.encrypt(
+            original_data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None,
+            ),
+        )
+        encrypted_file_path = file_path + ".encrypted"
+        with open(encrypted_file_path, "wb") as file:
+            file.write(encrypted_data)
+        return encrypted_file_path
+    except ValueError as e:
+        console.print(f"[red]Encryption failed: {e}[/red]")
+        return None
 
 
 def decrypt_file(file_path, private_key):
@@ -120,12 +140,19 @@ def file_encryption_menu():
             "type": "list",
             "name": "method",
             "message": "Select method to choose the key:",
-            "choices": ["Explorer", "Manual Path"],
+            "choices": ["Explorer", "Manual Path", "Select from Stored Keys"],
         }
     )["method"]
-    key_path = get_file_path(
-        key_method, "a Public Key" if action == choices["encrypt"] else "a Private Key"
-    )
+
+    if key_method == "Select from Stored Keys":
+        key_path = select_key_from_storage(is_private=(action == choices["decrypt"]))
+        if not key_path:
+            return  # Handle the case where no key is selected or available
+    else:
+        key_path = get_file_path(
+            key_method,
+            "a Public Key" if action == choices["encrypt"] else "a Private Key",
+        )
 
     if action == choices["encrypt"]:
         public_key = load_key(key_path, is_private=False)
