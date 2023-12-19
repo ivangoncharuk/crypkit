@@ -1,1 +1,1 @@
-{}
+{"keys/alice/alice_private.pem": {"type": "private", "size": 4096}, "keys/alice/alice_public.pem": {"type": "public", "size": 4096}, "keys/bob/bob_private.pem": {"type": "private", "size": 4096}, "keys/bob/bob_public.pem": {"type": "public", "size": 4096}}

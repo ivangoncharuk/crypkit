@@ -3,10 +3,25 @@ from cryptography.hazmat.primitives import serialization
 from InquirerPy import prompt
 from rich.console import Console
 from rich.markdown import Markdown
-import json
+import json, os
+
+
+KEY_STORAGE_FILE = "key_storage.json"
+KEY_DIRECTORY = "keys"  # Directory to store keys
 
 console = Console()
-KEY_STORAGE_FILE = "key_storage.json"
+
+
+def initialize_key_storage():
+    """
+    Initialize the key storage file with an empty JSON object if it doesn't exist.
+    """
+    if not os.path.exists(KEY_STORAGE_FILE):
+        with open(KEY_STORAGE_FILE, "w") as storage:
+            json.dump({}, storage)
+
+
+initialize_key_storage()  # must be called
 
 
 def generate_keys(key_size):
@@ -103,6 +118,26 @@ def key_generation_menu():
     """
     Display the key generation menu and handle user interactions.
     """
+    while True:
+        key_name = prompt(
+            {
+                "type": "input",
+                "name": "key_name",
+                "message": "Enter a name for the key pair (without extension):",
+            }
+        )["key_name"]
+
+        key_dir_path = os.path.join(KEY_DIRECTORY, key_name)
+
+        # Check if key directory with this name already exists
+        if os.path.exists(key_dir_path):
+            console.print(
+                f"[red]A key pair with the name '{key_name}' already exists. Please choose a different name.[/red]"
+            )
+            continue
+
+        break
+
     key_size_question = {
         "type": "list",
         "name": "key_size",
@@ -113,9 +148,15 @@ def key_generation_menu():
 
     private_key, public_key = generate_keys(key_size)
 
-    save_key_to_file(private_key, "private_key.pem", key_size, is_private=True)
-    save_key_to_file(public_key, "public_key.pem", key_size)
+    # Create directory for the key pair
+    os.makedirs(key_dir_path, exist_ok=True)
 
-    print(
-        f"Keys generated and saved as 'private_key.pem' and 'public_key.pem' with {key_size}-bit size."
+    private_key_filename = os.path.join(key_dir_path, f"{key_name}_private.pem")
+    public_key_filename = os.path.join(key_dir_path, f"{key_name}_public.pem")
+
+    save_key_to_file(private_key, private_key_filename, key_size, is_private=True)
+    save_key_to_file(public_key, public_key_filename, key_size)
+
+    console.print(
+        f"Keys generated and saved in '{key_dir_path}' with {key_size}-bit size."
     )

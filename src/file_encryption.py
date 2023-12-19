@@ -70,23 +70,32 @@ def decrypt_file(file_path, private_key):
     """
     Decrypt a file using the provided private key.
     """
-    with open(file_path, "rb") as file:
-        encrypted_data = file.read()
+    try:
+        with open(file_path, "rb") as file:
+            encrypted_data = file.read()
 
-    original_data = private_key.decrypt(
-        encrypted_data,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
+        original_data = private_key.decrypt(
+            encrypted_data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None,
+            ),
+        )
 
-    decrypted_file_path = file_path.replace(".encrypted", ".decrypted")
-    with open(decrypted_file_path, "wb") as file:
-        file.write(original_data)
+        decrypted_file_path = file_path.replace(".encrypted", ".decrypted")
+        with open(decrypted_file_path, "wb") as file:
+            file.write(original_data)
 
-    return decrypted_file_path
+        return decrypted_file_path
+    except ValueError as e:
+        console.print(
+            f"[red]Decryption failed: This may be due to using an incorrect key.[/red]"
+        )
+        return None
+    except Exception as e:
+        console.print(f"[red]An unexpected error occurred during decryption: {e}[/red]")
+        return None
 
 
 def get_file_path(method, title):
@@ -157,40 +166,51 @@ def file_encryption_menu():
     if action == choices["encrypt"]:
         public_key = load_key(key_path, is_private=False)
         encrypted_file_path = encrypt_file(file_path, public_key)
-        console.print(
-            f"File encrypted successfully. Encrypted file: {encrypted_file_path}"
-        )
+        if encrypted_file_path:
+            console.print(
+                f"✅ File encrypted successfully. Encrypted file: {encrypted_file_path}"
+            )
+        else:
+            console.print("[red]Encryption failed.[/red]")
     elif action == choices["decrypt"]:
         private_key = load_key(key_path, is_private=True)
         decrypted_file_path = decrypt_file(file_path, private_key)
-        console.print(
-            f"File decrypted successfully. Decrypted file: {decrypted_file_path}"
-        )
+        if decrypted_file_path:
+            console.print(f"✅ File decrypted successfully.")
+            file_path_panel = Panel(
+                decrypted_file_path,
+                expand=False,
+                title="Decrypted file path",
+                border_style="blue",
+            )
+            console.print(file_path_panel)
 
-        display_content = prompt(
-            {
-                "type": "confirm",
-                "name": "display",
-                "message": "Do you want to display the decrypted content?",
-                "default": False,
-            }
-        )["display"]
+            display_content = prompt(
+                {
+                    "type": "confirm",
+                    "name": "display",
+                    "message": "Do you want to display the decrypted content?",
+                    "default": False,
+                }
+            )["display"]
 
-        if display_content:
-            try:
-                with open(decrypted_file_path, "r", encoding="utf-8") as file:
-                    decrypted_content = file.read()
-                    panel = Panel(
-                        decrypted_content,
-                        title="Decrypted Content",
-                        expand=False,
-                        border_style="blue",
+            if display_content:
+                try:
+                    with open(decrypted_file_path, "r", encoding="utf-8") as file:
+                        decrypted_content = file.read()
+                        panel = Panel(
+                            decrypted_content,
+                            title="Decrypted Content",
+                            expand=False,
+                            border_style="blue",
+                        )
+                        console.print(panel)
+                except UnicodeDecodeError:
+                    console.print(
+                        "[red]Unable to display content: the file may contain binary data.[/red]"
                     )
-                    console.print(panel)
-            except UnicodeDecodeError:
-                console.print(
-                    "[red]Unable to display content: the file may contain binary data.[/red]"
-                )
+        else:
+            console.print("[red]Decryption failed.[/red]")
 
 
 def select_file(title="Select a file"):
