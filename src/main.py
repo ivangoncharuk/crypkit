@@ -13,8 +13,11 @@ def display_intro():
     """
     Display the introduction with the application name and author credits.
     """
-    intro_text = "Cryptography Toolkit\nMade by Ivan Goncharuk"
-    console.print(Panel(intro_text, expand=False, border_style="blue"))
+    intro_text = "Made by Ivan Goncharuk"
+    panel = Panel(
+        intro_text, expand=False, title="Cryptography Toolkit", border_style="blue"
+    )
+    console.print(panel)
 
 
 @click.group()
