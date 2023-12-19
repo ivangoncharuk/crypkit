@@ -4,6 +4,7 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from InquirerPy import prompt
 from key_generation import key_generation_menu
+from file_encryption import file_encryption_menu
 
 console = Console()
 
@@ -27,7 +28,7 @@ def cli():
 @cli.command()
 def menu():
     """
-    Display the main menu using InquirerPy with enhanced Rich styling.
+    Display the main menu.
     """
     menu_items = {
         "key_gen": "🔑 Key Generation",
@@ -60,8 +61,7 @@ def process_choice(choice):
     if choice == "key_gen":
         key_generation_menu()
     elif choice == "file_enc_dec":
-        # Call file encryption module
-        pass
+        file_encryption_menu()
     elif choice == "steganography":
         # Call steganography module
         pass
