@@ -115,104 +115,6 @@ def get_file_path(method, title):
     )
 
 
-def file_encryption_menu():
-    """
-    Display the file encryption/decryption menu and handle user interactions.
-    """
-    choices = {"encrypt": "Encrypt a file", "decrypt": "Decrypt a file"}
-    action = prompt(
-        [
-            {
-                "type": "list",
-                "name": "action",
-                "message": "Select an action:",
-                "choices": list(choices.values()),
-            }
-        ]
-    )["action"]
-
-    file_method = prompt(
-        {
-            "type": "list",
-            "name": "method",
-            "message": "Select method to choose the file:",
-            "choices": ["Explorer", "Manual Path"],
-        }
-    )["method"]
-    file_path = get_file_path(
-        file_method,
-        "a file to encrypt" if action == choices["encrypt"] else "a file to decrypt",
-    )
-
-    key_method = prompt(
-        {
-            "type": "list",
-            "name": "method",
-            "message": "Select method to choose the key:",
-            "choices": ["Explorer", "Manual Path", "Select from Stored Keys"],
-        }
-    )["method"]
-
-    if key_method == "Select from Stored Keys":
-        key_path = select_key_from_storage(is_private=(action == choices["decrypt"]))
-        if not key_path:
-            return  # Handle the case where no key is selected or available
-    else:
-        key_path = get_file_path(
-            key_method,
-            "a Public Key" if action == choices["encrypt"] else "a Private Key",
-        )
-
-    if action == choices["encrypt"]:
-        public_key = load_key(key_path, is_private=False)
-        encrypted_file_path = encrypt_file(file_path, public_key)
-        if encrypted_file_path:
-            console.print(
-                f"✅ File encrypted successfully. Encrypted file: {encrypted_file_path}"
-            )
-        else:
-            console.print("[red]Encryption failed.[/red]")
-    elif action == choices["decrypt"]:
-        private_key = load_key(key_path, is_private=True)
-        decrypted_file_path = decrypt_file(file_path, private_key)
-        if decrypted_file_path:
-            console.print(f"✅ File decrypted successfully.")
-            file_path_panel = Panel(
-                decrypted_file_path,
-                expand=False,
-                title="Decrypted file path",
-                border_style="blue",
-            )
-            console.print(file_path_panel)
-
-            display_content = prompt(
-                {
-                    "type": "confirm",
-                    "name": "display",
-                    "message": "Do you want to display the decrypted content?",
-                    "default": False,
-                }
-            )["display"]
-
-            if display_content:
-                try:
-                    with open(decrypted_file_path, "r", encoding="utf-8") as file:
-                        decrypted_content = file.read()
-                        panel = Panel(
-                            decrypted_content,
-                            title="Decrypted Content",
-                            expand=False,
-                            border_style="blue",
-                        )
-                        console.print(panel)
-                except UnicodeDecodeError:
-                    console.print(
-                        "[red]Unable to display content: the file may contain binary data.[/red]"
-                    )
-        else:
-            console.print("[red]Decryption failed.[/red]")
-
-
 def select_file(title="Select a file"):
     """
     Open a file dialog for the user to select a file using tkinter.
@@ -228,3 +130,139 @@ def select_key_file(is_private):
     """
     title = "Select a Private Key" if is_private else "Select a Public Key"
     return select_file(title)
+
+
+def rsa_encryption_workflow(file_path, key_path):
+    """
+    Handle RSA encryption workflow.
+    """
+    public_key = load_key(key_path, is_private=False)
+    encrypted_file_path = encrypt_file(file_path, public_key)
+    if encrypted_file_path:
+        console.print(
+            f"✅ File encrypted successfully. Encrypted file: {encrypted_file_path}"
+        )
+    else:
+        console.print("[red]Encryption failed.[/red]")
+
+
+def rsa_decryption_workflow(file_path, key_path):
+    """
+    Handle RSA decryption workflow.
+    """
+    private_key = load_key(key_path, is_private=True)
+    decrypted_file_path = decrypt_file(file_path, private_key)
+    if decrypted_file_path:
+        console.print(f"✅ File decrypted successfully.")
+        display_decrypted_file_path(decrypted_file_path)
+        prompt_and_display_decrypted_content(decrypted_file_path)
+    else:
+        console.print("[red]Decryption failed.[/red]")
+
+
+def display_decrypted_file_path(file_path):
+    """
+    Display the path of the decrypted file.
+    """
+    file_path_panel = Panel(
+        file_path,
+        expand=False,
+        title="Decrypted file path",
+        border_style="blue",
+    )
+    console.print(file_path_panel)
+
+
+def prompt_and_display_decrypted_content(file_path):
+    """
+    Prompt user and display the decrypted content if requested.
+    """
+    display_content = prompt(
+        {
+            "type": "confirm",
+            "name": "display",
+            "message": "Do you want to display the decrypted content?",
+            "default": False,
+        }
+    )["display"]
+
+    if display_content:
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                decrypted_content = file.read()
+                panel = Panel(
+                    decrypted_content,
+                    title="Decrypted Content",
+                    expand=False,
+                    border_style="blue",
+                )
+                console.print(panel)
+        except UnicodeDecodeError:
+            console.print(
+                "[red]Unable to display content: the file may contain binary data.[/red]"
+            )
+
+
+def get_file_selection(description):
+    """
+    Get the file path through the selected method.
+    """
+    file_method = prompt(
+        {
+            "type": "list",
+            "name": "method",
+            "message": f"Select method to choose {description}:",
+            "choices": ["Explorer", "Manual Path"],
+        }
+    )["method"]
+    return get_file_path(file_method, description)
+
+
+def get_key_selection(action):
+    """
+    Get the key path through the selected method.
+    """
+    key_method = prompt(
+        {
+            "type": "list",
+            "name": "method",
+            "message": "Select method to choose the key:",
+            "choices": ["Explorer", "Manual Path", "Select from Stored Keys"],
+        }
+    )["method"]
+
+    if key_method == "Select from Stored Keys":
+        return select_key_from_storage(is_private="decrypt" in action)
+    else:
+        return get_file_path(
+            key_method, "a Public Key" if "encrypt" in action else "a Private Key"
+        )
+
+
+def file_encryption_menu():
+    """
+    Display the file encryption/decryption menu and handle user interactions.
+    """
+    encryption_choices = {
+        "rsa_encrypt": "RSA Encrypt a file",
+        "rsa_decrypt": "RSA Decrypt a file"
+        # Future methods can be added here
+    }
+    action = prompt(
+        [
+            {
+                "type": "list",
+                "name": "action",
+                "message": "Select an encryption method:",
+                "choices": list(encryption_choices.values()),
+            }
+        ]
+    )["action"]
+
+    file_path = get_file_selection("file")
+    key_path = get_key_selection(action)
+
+    if action == encryption_choices["rsa_encrypt"]:
+        rsa_encryption_workflow(file_path, key_path)
+    elif action == encryption_choices["rsa_decrypt"]:
+        rsa_decryption_workflow(file_path, key_path)
