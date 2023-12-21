@@ -53,3 +53,20 @@ Contributions to CrypKit are welcome! If you have an idea for a new feature or a
 
 ---
 
+# Demo
+
+## Key Generation
+
+https://github.com/ivangoncharuk/crypkit/assets/85744041/3400ea3c-81ca-495c-bc5a-f008f8696886
+
+## Encrypting
+
+### Step 1 (making the secret message)
+
+https://github.com/ivangoncharuk/crypkit/assets/85744041/0e1cf05a-69fc-42ec-aad9-2da6d86ca8a2
+
+### Step 2 (encrypt the secret message)
+
+https://github.com/ivangoncharuk/crypkit/assets/85744041/7e0d5973-a981-4b40-a62e-5f7accffafb6
+
+
